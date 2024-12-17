@@ -30,3 +30,6 @@ copyright = "Copyright (C) 2024 by Flet"
 
 [tool.flet.app]
 path = "src"
+
+[tool.ruff]
+line-length = 80
