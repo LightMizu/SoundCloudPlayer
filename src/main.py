@@ -13,11 +13,6 @@ from flet.core.animation import AnimationCurve
 import traceback
 import vlc
 import asyncio
-from flet.core.audio import (
-    AudioDurationChangeEvent,
-    AudioPositionChangeEvent,
-    AudioStateChangeEvent,
-)
 
 from flet import (
     Page,
@@ -38,7 +33,6 @@ from flet import (
     Padding,
     ThemeMode,
     ScrollMode,
-    Audio,
     alignment,
     TextAlign,
     Icon,
@@ -229,7 +223,7 @@ class SoundCloudPlayerApp:
         )
         # Karaoke text column
         self.karaoke_column = Column(
-            [Text(f"", size=20, key=f"{i}") for i in range(100)],
+            [Text("", size=20, key=f"{i}") for i in range(100)],
             height=self.page.height - 20,
             scroll=ScrollMode.HIDDEN,
             horizontal_alignment=CrossAxisAlignment.CENTER,
@@ -253,10 +247,6 @@ class SoundCloudPlayerApp:
         self.page.update()
         self.page.update()
 
-    def state_change(self, e: AudioStateChangeEvent):
-        """On complete track play next"""
-        if e.data == "completed":
-            self.play_next()
 
     def change_theme(self, e: OptionalControlEventCallable):
         """Change theme"""
@@ -457,7 +447,7 @@ class SoundCloudPlayerApp:
             # Apply UI updates to the page.
             self.page.update()
 
-        except Exception as ex:
+        except Exception:
             # Display an error message if something goes wrong.
             self.show_error(str(traceback.format_exc()))
 
@@ -527,7 +517,7 @@ class SoundCloudPlayerApp:
                             curve=AnimationCurve.EASE_IN_OUT_EXPO,
                         )
                 self.page.update()
-            except Exception as ex:
+            except Exception:
                 print(traceback.format_exc())
 
     def format_ms(self, time):
