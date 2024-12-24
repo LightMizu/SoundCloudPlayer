@@ -247,7 +247,6 @@ class SoundCloudPlayerApp:
         self.page.update()
         self.page.update()
 
-
     def change_theme(self, e: OptionalControlEventCallable):
         """Change theme"""
         if self.page.theme_mode == ThemeMode.DARK:

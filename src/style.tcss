@@ -1,0 +1,30 @@
+#sidebar {
+
+    dock: bottom;
+    width: 100%;
+    height: 5;
+    color: #0f2b41;
+    background: dodgerblue;
+}
+#timecont{
+    width: 100%;
+    content-align: center middle;
+}
+#track_name {
+    text-align: center;
+    width: 100%;
+}
+#track_author {
+    text-align: center;
+    width: 100%;
+}
+#play_time{
+    text-align: center;
+    width: 100%;
+}
+Button {
+    width: 34w;
+}
+.track{
+    width: 100%;
+}
