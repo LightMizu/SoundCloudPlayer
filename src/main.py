@@ -66,7 +66,7 @@ class SoundCloudPlayerApp:
         self.client = Soundcloud("", "AsIBxSC4kw4QXdGp0vufY0YztIlkRMUc")
 
         # Audio component
-        self.audio_player: vlc.MediaPlayer = vlc.MediaPlayer()
+        self.audio_player: vlc.MediaPlayer = vlc.MediaPlayer() #pyright:ignore
 
         # Initialize UI
         self.setup_controls()
@@ -236,7 +236,7 @@ class SoundCloudPlayerApp:
     def adaptive(self, e):
         self.karaoke_column.height = self.page.height - 20
 
-    def enable_karaoke(self, e: OptionalControlEventCallable):
+    def enable_karaoke(self, e):
         if self.right_panel.content == self.track_column:
             self.show_karaoke = True
             self.right_panel.content = self.karaoke_column
@@ -247,7 +247,7 @@ class SoundCloudPlayerApp:
         self.page.update()
         self.page.update()
 
-    def change_theme(self, e: OptionalControlEventCallable):
+    def change_theme(self, e):
         """Change theme"""
         if self.page.theme_mode == ThemeMode.DARK:
             self.theme_button.icon = Icons.WB_SUNNY_ROUNDED
@@ -268,7 +268,7 @@ class SoundCloudPlayerApp:
                 self.indexl - 1,
             )
         else:
-            self.audio_player.seek(0)
+            self.audio_player.seek(0) #pyright:ignore
 
     def seek_start(self, e):
         """On start tap on timeline"""
@@ -308,7 +308,7 @@ class SoundCloudPlayerApp:
                         line["words"],
                         size=20,
                         opacity=0.6,
-                        key=start_time,
+                        key=str(start_time),
                         animate_opacity=500,
                     )
                 )
@@ -359,7 +359,7 @@ class SoundCloudPlayerApp:
     def not_none(self, val: (int | None)) -> int:
         """Return int not None if none return 0"""
         if val is None:
-            return 0.001
+            return 1
         else:
             return val
 
@@ -393,7 +393,7 @@ class SoundCloudPlayerApp:
         """
 
         # Reset the background color of the previously selected track.
-        self.track_list.controls[self.indexl].bgcolor = Colors.SURFACE
+        self.track_list.controls[self.indexl].bgcolor = Colors.SURFACE #pyright:ignore
 
         # Update the index of the currently selected track.
         self.indexl = ind
@@ -468,7 +468,7 @@ class SoundCloudPlayerApp:
     def focus_line(self, text: Text):
         for k in self.karaoke_column.controls:
             k.opacity = 0.6
-            k.size = 20
+            k.size = 20 #pyright:ignore
         text.opacity = 1
         text.size = 30
         self.page.update()
@@ -508,7 +508,7 @@ class SoundCloudPlayerApp:
                     if pos - pos_time < 100 and self.focused_line != pos:
                         self.focused_line = pos
                         self.focus_line(
-                            self.karaoke_column.controls[self.karaoke[pos]]
+                            self.karaoke_column.controls[self.karaoke[pos]] #pyright:ignore
                         )
                         self.karaoke_column.scroll_to(
                             key=str(pos),
@@ -621,7 +621,7 @@ class SoundCloudPlayerApp:
         # Update the page to reflect the changes made to the track list.
         self.page.update()
 
-    def toggle_play(self, e: OptionalControlEventCallable):
+    def toggle_play(self, e):
         """Toggle play/pause."""
         if self.audio_player.is_playing():
             self.audio_player.pause()  # Использование VLC для паузы
@@ -631,7 +631,7 @@ class SoundCloudPlayerApp:
             self.play_button.icon = Icons.PAUSE_ROUNDED
         self.page.update()
 
-    def change_volume(self, e: OptionalControlEventCallable):
+    def change_volume(self, e):
         """Change volume."""
         value = int(e.control.value)
         self.audio_player.audio_set_volume(value)
