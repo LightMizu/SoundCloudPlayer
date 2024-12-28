@@ -7,13 +7,15 @@ import json
 from soundcloud import Soundcloud
 import flet
 from typing import Dict
-from flet.core.types import OptionalControlEventCallable
-from flet.core.scrollable_control import OnScrollEvent
-from flet.core.animation import AnimationCurve
+import eyed3
 import traceback
+from playerctl import PlayerCtl
 import vlc
 import asyncio
+#TODO Add syncedlyrics and pylrc
 
+from flet.core.scrollable_control import OnScrollEvent
+from flet.core.animation import AnimationCurve
 from flet import (
     Page,
     Column,
@@ -66,7 +68,7 @@ class SoundCloudPlayerApp:
         self.client = Soundcloud("", "AsIBxSC4kw4QXdGp0vufY0YztIlkRMUc")
 
         # Audio component
-        self.audio_player: vlc.MediaPlayer = vlc.MediaPlayer() #pyright:ignore
+        self.audio_player = PlayerCtl() #pyright:ignore
 
         # Initialize UI
         self.setup_controls()
@@ -281,13 +283,16 @@ class SoundCloudPlayerApp:
         click_position = float(e.local_x)
         duration = self.not_none(self.duration)
         progress_ratio = max(0, min(click_position / 230, 1))  # Normalize
-        self.audio_player.set_position(progress_ratio)
         self.time_line.value = f"{self.format_ms(int(progress_ratio * duration))}/{self.format_ms(self.duration)}"
         self.progress_bar.value = progress_ratio
         self.page.update()
 
     def seek_end(self, e):
         """On tap on timeline end"""
+        duration = self.duration
+        progress_ratio = self.progress_bar.value  # Normalize
+        self.audio_player.seek(int(progress_ratio*duration))
+        print(int(progress_ratio*duration/1000))
         self.lock_seek = False
         if self.play_button.icon == Icons.PAUSE_ROUNDED:
             self.audio_player.play()
@@ -327,7 +332,7 @@ class SoundCloudPlayerApp:
             self.load_likes(None, offset=str(self.offset))
             self.loading = False
 
-    def download_mp3(self, url: str, output_file: str):
+    def download_mp3(self, url: str, output_file: str, title: str, artist: str):
         """
         Download a track from the given stream URL.
 
@@ -348,7 +353,10 @@ class SoundCloudPlayerApp:
 
             # Use ffmpeg to download and convert the stream to an MP3 file.
             ffmpeg.input(url).output(output_file, format="mp3").run()
-
+            tags = eyed3.load(output_file)
+            tags.tag.title = title #pyright:ignore
+            tags.tag.artist = artist #pyright:ignore
+            tags.tag.save() #pyright:ignore
             # Reset the progress bar and download flag after the process completes.
             self.progress_bar.value = 0
             self.download = False
@@ -423,12 +431,12 @@ class SoundCloudPlayerApp:
 
                 # Download the track to the local cache directory.
                 self.download_mp3(
-                    url, f"{Path.home()}/.soundcloud/{track_id}.mp3"
+                    url, f"{Path.home()}/.soundcloud/{track_id}.mp3", title, author
                 )
 
             # Set the local file path as the audio source for the player.
             stream_url = f"{Path.home()}/.soundcloud/{track_id}.mp3"
-            self.audio_player.set_media(vlc.Media(stream_url))
+            self.audio_player.set_media(stream_url)
 
             # Update the play button state and icon to indicate playback.
             self.play_button.disabled = False
@@ -479,7 +487,7 @@ class SoundCloudPlayerApp:
             self.duration = self.audio_player.get_length()
             if self.duration < 0:
                 self.duration = 0
-            await asyncio.sleep(0.001)
+            await asyncio.sleep(0.1)
             try:
                 if self.lock_seek:
                     continue
@@ -487,11 +495,11 @@ class SoundCloudPlayerApp:
                     self.progress_bar.value = None
                     self.page.update()
                     continue
-                pos_time = int(self.audio_player.get_position() * self.duration)
+                pos_time = self.audio_player.get_position()
                 self.time_line.value = f"{self.format_ms(pos_time)}/{self.format_ms(self.duration)}"
                 if (
-                    self.audio_player.get_position() > 0.97
-                    and not self.audio_player.is_playing()
+                    self.audio_player.get_status() == 'Stopped'
+
                 ):
                     self.play_next()
                     continue
@@ -500,7 +508,7 @@ class SoundCloudPlayerApp:
                 else:
                     self.progress_bar.value = max(
                         0,
-                        self.not_none(pos_time) / self.not_none(self.duration),
+                        pos_time / self.not_none(self.duration),
                     )
                 if self.have_karaoke and self.show_karaoke:
                     pos = min(self.karaoke, key=lambda x: abs(x - pos_time))

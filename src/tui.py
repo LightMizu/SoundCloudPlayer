@@ -3,12 +3,13 @@ from textual.containers import ScrollableContainer, Vertical, Horizontal
 from textual.widgets import Button, Label
 from time import sleep
 import vlc
+from playerctl import PlayerCtl
 from textual import work
 import ffmpeg
 from pathlib import Path
 from soundcloud import Soundcloud
 import traceback
-
+import eyed3
 
 class ScrollEndApp(App):
     CSS_PATH = "style.tcss"
@@ -20,13 +21,13 @@ class ScrollEndApp(App):
         self.loaded = True
         # Initialize client and variables
         self.client = Soundcloud("", "AsIBxSC4kw4QXdGp0vufY0YztIlkRMUc")
-        self.audio_player = vlc.MediaPlayer()
+        self.audio_player = PlayerCtl()
         self.liked_tracks = []
         self.offset: str = "0"
         self.index = -1
         super().__init__()
 
-    def download_track(self, url, output_file):
+    def download_track(self, url:str , output_file: str, title: str, artist: str):
         """
         Download a track from the given stream URL.
 
@@ -40,11 +41,14 @@ class ScrollEndApp(App):
         # Set the download flag to True and reset the progress bar value.
 
         # Use ffmpeg to download and convert the stream to an MP3 file.
-        ffmpeg.input(url).output(output_file, format="mp3").run()
-
+        ffmpeg.input(url).output(output_file, format="mp3", loglevel="quiet").run()
+        tags = eyed3.load(output_file)
+        tags.tag.title = title #pyright:ignore
+        tags.tag.artist = artist #pyright:ignore
+        tags.tag.save() #pyright:ignore
         # Reset the progress bar and download flag after the process completes.
 
-    def load_likes(self, offset="0"):
+    def load_likes(self, offset:str="0"):
         """Fetch liked tracks."""
         print("Fetching liked tracks...")
         try:
@@ -74,24 +78,13 @@ class ScrollEndApp(App):
                         "author": track["user"]["username"],
                     }
                 )
-                delta.append(
-                    {
-                        "title": track["title"],
-                        "url": track["media"]["transcodings"][0]["url"],
-                        "auth": track.get("track_authorization"),
-                        "artwork_url": track.get(
-                            "artwork_url", "https://via.placeholder.com/500"
-                        ),
-                        "track_id": track["id"],
-                        "author": track["user"]["username"],
-                    }
-                )
+                delta.append(self.liked_tracks[-1])
             return delta
         except Exception:
             self.notify("Fetch err " + str(traceback.format_exc()))
             return []
 
-    def play_track(self, index):
+    def play_track(self, index:int):
         """Play the track at the given index."""
         track = self.liked_tracks[index]
         title = track["title"]
@@ -110,9 +103,9 @@ class ScrollEndApp(App):
                     sleep(0.1)  # Retry after a short delay.
                 else:
                     break
-            self.download_track(stream_url, str(cache_file))
+            self.download_track(stream_url, str(cache_file), title, track["author"])
 
-        self.audio_player.set_media(vlc.Media(str(cache_file)))
+        self.audio_player.set_media(str(cache_file))
         self.audio_player.play()
         self.index = index
         name: Label = self.query_one("#track_name")
@@ -132,6 +125,7 @@ class ScrollEndApp(App):
     def time_update(self):
         while True:
             sleep(0.1)
+            
             play_time: Label = self.query_one("#play_time")
             position = self.audio_player.get_position()
             duration = self.audio_player.get_length()
@@ -139,9 +133,9 @@ class ScrollEndApp(App):
                 play_time.update(f"00:00/00:00")
             else:
                 play_time.update(
-                    f"{self.format_ms(int(duration*position))}/{self.format_ms(duration)}"
+                    f"{self.format_ms(int(position))}/{self.format_ms(duration)}"
                 )
-            if position > 0.97 and not self.audio_player.is_playing():
+            if self.audio_player.get_status() == 'Stopped':
                 self.next_track()
 
     def next_track(self):
